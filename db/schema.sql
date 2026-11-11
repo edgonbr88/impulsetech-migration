@@ -38,6 +38,17 @@ COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UU
 
 
 --
+-- Name: embudo_lead_enum; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.embudo_lead_enum AS ENUM (
+    'LEGAL_SAREN',
+    'IA_AUTOMATIZACION',
+    'SOFTWARE_MEDIDA'
+);
+
+
+--
 -- Name: estado_cliente_enum; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -45,6 +56,20 @@ CREATE TYPE public.estado_cliente_enum AS ENUM (
     'ACTIVO',
     'INACTIVO',
     'MOROSO'
+);
+
+
+--
+-- Name: etapa_lead_enum; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.etapa_lead_enum AS ENUM (
+    'NUEVO',
+    'DIAGNOSTICO',
+    'PROPUESTA',
+    'NEGOCIACION',
+    'GANADO',
+    'PERDIDO'
 );
 
 
@@ -97,6 +122,28 @@ CREATE TABLE public.clientes (
 
 
 --
+-- Name: leads; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.leads (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    nombre_contacto character varying(150) NOT NULL,
+    empresa_o_proyecto character varying(200) NOT NULL,
+    telefono_whatsapp character varying(50) NOT NULL,
+    email character varying(255) NOT NULL,
+    embudo public.embudo_lead_enum NOT NULL,
+    etapa public.etapa_lead_enum DEFAULT 'NUEVO'::public.etapa_lead_enum NOT NULL,
+    motivo_perdida text,
+    valor_estimado_usd numeric(12,2) DEFAULT 0.00 NOT NULL,
+    ejecutivo_asignado_id uuid NOT NULL,
+    cliente_id uuid,
+    notas text,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
 -- Name: schema_migrations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -135,6 +182,14 @@ ALTER TABLE ONLY public.clientes
 
 ALTER TABLE ONLY public.clientes
     ADD CONSTRAINT clientes_rif_identificacion_key UNIQUE (rif_identificacion);
+
+
+--
+-- Name: leads leads_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.leads
+    ADD CONSTRAINT leads_pkey PRIMARY KEY (id);
 
 
 --
@@ -183,6 +238,34 @@ CREATE INDEX idx_clientes_rif ON public.clientes USING btree (rif_identificacion
 
 
 --
+-- Name: idx_leads_cliente_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_leads_cliente_id ON public.leads USING btree (cliente_id);
+
+
+--
+-- Name: idx_leads_ejecutivo_asignado_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_leads_ejecutivo_asignado_id ON public.leads USING btree (ejecutivo_asignado_id);
+
+
+--
+-- Name: idx_leads_embudo; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_leads_embudo ON public.leads USING btree (embudo);
+
+
+--
+-- Name: idx_leads_etapa; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_leads_etapa ON public.leads USING btree (etapa);
+
+
+--
 -- Name: idx_usuarios_activo; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -218,11 +301,34 @@ CREATE TRIGGER update_clientes_updated_at BEFORE UPDATE ON public.clientes FOR E
 
 
 --
+-- Name: leads update_leads_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_leads_updated_at BEFORE UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
 -- Name: clientes clientes_ejecutivo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.clientes
     ADD CONSTRAINT clientes_ejecutivo_id_fkey FOREIGN KEY (ejecutivo_id) REFERENCES public.usuarios(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: leads leads_cliente_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.leads
+    ADD CONSTRAINT leads_cliente_id_fkey FOREIGN KEY (cliente_id) REFERENCES public.clientes(id) ON DELETE SET NULL;
+
+
+--
+-- Name: leads leads_ejecutivo_asignado_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.leads
+    ADD CONSTRAINT leads_ejecutivo_asignado_id_fkey FOREIGN KEY (ejecutivo_asignado_id) REFERENCES public.usuarios(id) ON DELETE RESTRICT;
 
 
 --
@@ -236,4 +342,5 @@ ALTER TABLE ONLY public.clientes
 
 INSERT INTO public.schema_migrations (version) VALUES
     ('20261110195500'),
-    ('20261110231500');
+    ('20261110231500'),
+    ('20261111084500');
