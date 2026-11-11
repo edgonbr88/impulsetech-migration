@@ -38,6 +38,17 @@ COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UU
 
 
 --
+-- Name: estado_cliente_enum; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.estado_cliente_enum AS ENUM (
+    'ACTIVO',
+    'INACTIVO',
+    'MOROSO'
+);
+
+
+--
 -- Name: rol_usuario_enum; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -66,6 +77,26 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: clientes; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.clientes (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    razon_social character varying(255) NOT NULL,
+    rif_identificacion character varying(50) NOT NULL,
+    contacto_principal character varying(150) NOT NULL,
+    telefono_whatsapp character varying(50) NOT NULL,
+    email character varying(255) NOT NULL,
+    direccion_ciudad character varying(255),
+    ejecutivo_id uuid NOT NULL,
+    estado public.estado_cliente_enum DEFAULT 'ACTIVO'::public.estado_cliente_enum NOT NULL,
+    notas text,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
 -- Name: schema_migrations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -91,6 +122,22 @@ CREATE TABLE public.usuarios (
 
 
 --
+-- Name: clientes clientes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.clientes
+    ADD CONSTRAINT clientes_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: clientes clientes_rif_identificacion_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.clientes
+    ADD CONSTRAINT clientes_rif_identificacion_key UNIQUE (rif_identificacion);
+
+
+--
 -- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -112,6 +159,27 @@ ALTER TABLE ONLY public.usuarios
 
 ALTER TABLE ONLY public.usuarios
     ADD CONSTRAINT usuarios_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: idx_clientes_ejecutivo_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_clientes_ejecutivo_id ON public.clientes USING btree (ejecutivo_id);
+
+
+--
+-- Name: idx_clientes_estado; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_clientes_estado ON public.clientes USING btree (estado);
+
+
+--
+-- Name: idx_clientes_rif; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_clientes_rif ON public.clientes USING btree (rif_identificacion);
 
 
 --
@@ -143,6 +211,21 @@ CREATE TRIGGER trg_usuarios_updated_at BEFORE UPDATE ON public.usuarios FOR EACH
 
 
 --
+-- Name: clientes update_clientes_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_clientes_updated_at BEFORE UPDATE ON public.clientes FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- Name: clientes clientes_ejecutivo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.clientes
+    ADD CONSTRAINT clientes_ejecutivo_id_fkey FOREIGN KEY (ejecutivo_id) REFERENCES public.usuarios(id) ON DELETE RESTRICT;
+
+
+--
 -- PostgreSQL database dump complete
 --
 
@@ -152,4 +235,5 @@ CREATE TRIGGER trg_usuarios_updated_at BEFORE UPDATE ON public.usuarios FOR EACH
 --
 
 INSERT INTO public.schema_migrations (version) VALUES
-    ('20261110195500');
+    ('20261110195500'),
+    ('20261110231500');
