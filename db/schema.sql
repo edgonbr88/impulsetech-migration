@@ -60,6 +60,20 @@ CREATE TYPE public.estado_cliente_enum AS ENUM (
 
 
 --
+-- Name: estado_operativo_servicio_enum; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.estado_operativo_servicio_enum AS ENUM (
+    'EN_ESPERA',
+    'EN_DESARROLLO',
+    'EN_REVISION',
+    'ACTIVO_PRODUCCION',
+    'FINALIZADO',
+    'PAUSADO'
+);
+
+
+--
 -- Name: etapa_lead_enum; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -74,12 +88,34 @@ CREATE TYPE public.etapa_lead_enum AS ENUM (
 
 
 --
+-- Name: modalidad_servicio_enum; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.modalidad_servicio_enum AS ENUM (
+    'PROYECTO_UNICO',
+    'RECURRENTE_MENSUAL'
+);
+
+
+--
 -- Name: rol_usuario_enum; Type: TYPE; Schema: public; Owner: -
 --
 
 CREATE TYPE public.rol_usuario_enum AS ENUM (
     'ADMIN',
     'EJECUTIVO'
+);
+
+
+--
+-- Name: tipo_servicio_enum; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.tipo_servicio_enum AS ENUM (
+    'LEGAL_SAREN',
+    'IA_AUTOMATIZACION',
+    'SOFTWARE_MEDIDA',
+    'RETAINER_MENSUAL'
 );
 
 
@@ -153,6 +189,29 @@ CREATE TABLE public.schema_migrations (
 
 
 --
+-- Name: servicios; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.servicios (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    cliente_id uuid NOT NULL,
+    tipo public.tipo_servicio_enum NOT NULL,
+    nombre_servicio character varying(200) NOT NULL,
+    modalidad public.modalidad_servicio_enum DEFAULT 'PROYECTO_UNICO'::public.modalidad_servicio_enum NOT NULL,
+    estado_operativo public.estado_operativo_servicio_enum DEFAULT 'EN_ESPERA'::public.estado_operativo_servicio_enum NOT NULL,
+    especialista_responsable character varying(150) NOT NULL,
+    monto_pactado_usd numeric(12,2) DEFAULT 0.00 NOT NULL,
+    fecha_inicio date DEFAULT CURRENT_DATE NOT NULL,
+    fecha_entrega_estimada date,
+    dia_corte_mensual smallint,
+    notas text,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT servicios_dia_corte_mensual_check CHECK (((dia_corte_mensual >= 1) AND (dia_corte_mensual <= 31)))
+);
+
+
+--
 -- Name: usuarios; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -198,6 +257,14 @@ ALTER TABLE ONLY public.leads
 
 ALTER TABLE ONLY public.schema_migrations
     ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
+
+
+--
+-- Name: servicios servicios_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.servicios
+    ADD CONSTRAINT servicios_pkey PRIMARY KEY (id);
 
 
 --
@@ -266,6 +333,34 @@ CREATE INDEX idx_leads_etapa ON public.leads USING btree (etapa);
 
 
 --
+-- Name: idx_servicios_cliente_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_servicios_cliente_id ON public.servicios USING btree (cliente_id);
+
+
+--
+-- Name: idx_servicios_estado_operativo; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_servicios_estado_operativo ON public.servicios USING btree (estado_operativo);
+
+
+--
+-- Name: idx_servicios_modalidad; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_servicios_modalidad ON public.servicios USING btree (modalidad);
+
+
+--
+-- Name: idx_servicios_tipo; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_servicios_tipo ON public.servicios USING btree (tipo);
+
+
+--
 -- Name: idx_usuarios_activo; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -308,6 +403,13 @@ CREATE TRIGGER update_leads_updated_at BEFORE UPDATE ON public.leads FOR EACH RO
 
 
 --
+-- Name: servicios update_servicios_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_servicios_updated_at BEFORE UPDATE ON public.servicios FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
 -- Name: clientes clientes_ejecutivo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -332,6 +434,14 @@ ALTER TABLE ONLY public.leads
 
 
 --
+-- Name: servicios servicios_cliente_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.servicios
+    ADD CONSTRAINT servicios_cliente_id_fkey FOREIGN KEY (cliente_id) REFERENCES public.clientes(id) ON DELETE CASCADE;
+
+
+--
 -- PostgreSQL database dump complete
 --
 
@@ -343,4 +453,5 @@ ALTER TABLE ONLY public.leads
 INSERT INTO public.schema_migrations (version) VALUES
     ('20261110195500'),
     ('20261110231500'),
-    ('20261111084500');
+    ('20261111084500'),
+    ('20261111091500');
